@@ -291,7 +291,7 @@ var TextureSource = new Class({
      */
     setFilter: function (filterMode)
     {
-        if (this.renderer.gl)
+        if (this.renderer && this.renderer.gl)
         {
             this.renderer.setTextureFilter(this.glTexture, filterMode);
         }
