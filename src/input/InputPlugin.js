@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -519,7 +519,6 @@ var InputPlugin = new Class({
         }
 
         //  Clear the removal list
-        removeList.length = 0;
         this._pendingRemoval.length = 0;
 
         //  Move pendingInsertion to list (also clears pendingInsertion at the same time)
@@ -536,7 +535,7 @@ var InputPlugin = new Class({
      */
     isActive: function ()
     {
-        return (this.enabled && this.scene.sys.isActive());
+        return (this.enabled && this.scene.sys.canInput());
     },
 
     /**
@@ -784,6 +783,8 @@ var InputPlugin = new Class({
         // If GameObject.input already cleared from higher class
         if (input)
         {
+            this.removeDebug(gameObject);
+
             input.gameObject = undefined;
             input.target = undefined;
             input.hitArea = undefined;
@@ -2513,7 +2514,7 @@ var InputPlugin = new Class({
 
                 debug.setRotation(rotation);
                 debug.setScale(scaleX, scaleY);
-                debug.setPosition(x + offsetx, y + offsety);
+                debug.setPosition(x + offsetx * scaleX, y + offsety * scaleY);
                 debug.setScrollFactor(gameObject.scrollFactorX, gameObject.scrollFactorY);
                 debug.setDepth(gameObject.depth);
             };
@@ -2930,6 +2931,25 @@ var InputPlugin = new Class({
         manager.events.off(Events.GAME_OVER, this.onGameOver, this);
 
         eventEmitter.off(SceneEvents.SHUTDOWN, this.shutdown, this);
+    },
+
+    /**
+     * Loops through all of the Input Manager Pointer instances and calls `reset` on them.
+     *
+     * Use this function if you find that input has been stolen from Phaser via a 3rd
+     * party component, such as Vue, and you need to tell Phaser to reset the Pointer states.
+     *
+     * @method Phaser.Input.InputPlugin#resetPointers
+     * @since 3.60.0
+     */
+    resetPointers: function ()
+    {
+        var pointers = this.manager.pointers;
+
+        for (var i = 0; i < pointers.length; i++)
+        {
+            pointers[i].reset();
+        }
     },
 
     /**

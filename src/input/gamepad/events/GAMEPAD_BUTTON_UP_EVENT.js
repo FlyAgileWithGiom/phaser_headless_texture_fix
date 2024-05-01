@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,6 +17,7 @@
  * You can also listen for an UP event from the Gamepad Plugin. See the [BUTTON_UP]{@linkcode Phaser.Input.Gamepad.Events#event:BUTTON_UP} event for details.
  *
  * @event Phaser.Input.Gamepad.Events#GAMEPAD_BUTTON_UP
+ * @type {string}
  * @since 3.10.0
  *
  * @param {number} index - The index of the button that was released.

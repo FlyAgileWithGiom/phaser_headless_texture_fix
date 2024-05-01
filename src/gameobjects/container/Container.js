@@ -1,7 +1,7 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
  * @author       Felipe Alfonso <@bitnenfer>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -70,7 +70,7 @@ var Vector2 = require('../../math/Vector2');
  * @extends Phaser.GameObjects.Components.ComputedSize
  * @extends Phaser.GameObjects.Components.Depth
  * @extends Phaser.GameObjects.Components.Mask
- * @extends Phaser.GameObjects.Components.Pipeline
+ * @extends Phaser.GameObjects.Components.PostPipeline
  * @extends Phaser.GameObjects.Components.Transform
  * @extends Phaser.GameObjects.Components.Visible
  *
@@ -89,7 +89,7 @@ var Container = new Class({
         Components.ComputedSize,
         Components.Depth,
         Components.Mask,
-        Components.Pipeline,
+        Components.PostPipeline,
         Components.Transform,
         Components.Visible,
         Render
@@ -244,11 +244,9 @@ var Container = new Class({
          */
         this.scrollFactorY = 1;
 
-        this.initPipeline();
+        this.initPostPipeline();
 
         this.setPosition(x, y);
-
-        this.clearAlpha();
 
         this.setBlendMode(BlendModes.SKIP_CHECK);
 
@@ -449,9 +447,11 @@ var Container = new Class({
                 gameObject.parentContainer.remove(gameObject);
             }
 
+            gameObject.parentContainer = this;
+
             gameObject.removeFromDisplayList();
 
-            gameObject.parentContainer = this;
+            gameObject.addedToScene();
         }
     },
 
@@ -466,11 +466,13 @@ var Container = new Class({
      */
     removeHandler: function (gameObject)
     {
-        gameObject.off(Events.DESTROY, this.remove);
+        gameObject.off(Events.DESTROY, this.remove, this);
 
         if (this.exclusive)
         {
             gameObject.parentContainer = null;
+
+            gameObject.removedFromScene();
 
             gameObject.addToDisplayList();
         }
@@ -483,10 +485,10 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#pointToContainer
      * @since 3.4.0
      *
-     * @param {(object|Phaser.Geom.Point|Phaser.Math.Vector2)} source - The Source Point to be transformed.
-     * @param {(object|Phaser.Geom.Point|Phaser.Math.Vector2)} [output] - A destination object to store the transformed point in. If none given a Vector2 will be created and returned.
+     * @param {Phaser.Types.Math.Vector2Like} source - The Source Point to be transformed.
+     * @param {Phaser.Types.Math.Vector2Like} [output] - A destination object to store the transformed point in. If none given a Vector2 will be created and returned.
      *
-     * @return {(object|Phaser.Geom.Point|Phaser.Math.Vector2)} The transformed point.
+     * @return {Phaser.Types.Math.Vector2Like} The transformed point.
      */
     pointToContainer: function (source, output)
     {
@@ -537,6 +539,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#add
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {(T|T[])} - [child]
+     *
      * @param {Phaser.GameObjects.GameObject|Phaser.GameObjects.GameObject[]} child - The Game Object, or array of Game Objects, to add to the Container.
      *
      * @return {this} This Container instance.
@@ -558,6 +563,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#addAt
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {(T|T[])} - [child]
+     *
      * @param {Phaser.GameObjects.GameObject|Phaser.GameObjects.GameObject[]} child - The Game Object, or array of Game Objects, to add to the Container.
      * @param {number} [index=0] - The position to insert the Game Object/s at.
      *
@@ -576,6 +584,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#getAt
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [$return]
+     *
      * @param {number} index - The position to get the Game Object from.
      *
      * @return {?Phaser.GameObjects.GameObject} The Game Object at the specified index, or `null` if none found.
@@ -590,6 +601,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#getIndex
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
      *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to search for in this Container.
      *
@@ -639,6 +653,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#getByName
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [$return]
+     *
      * @param {string} name - The name to search for.
      *
      * @return {?Phaser.GameObjects.GameObject} The first child with a matching name, or `null` if none were found.
@@ -653,6 +670,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#getRandom
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [$return]
      *
      * @param {number} [startIndex=0] - An optional start index.
      * @param {number} [length] - An optional length, the total number of elements (from the startIndex) to choose from.
@@ -676,6 +696,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#getFirst
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [$return]
      *
      * @param {string} property - The property to test on each Game Object in the Container.
      * @param {*} value - The value to test the property against. Must pass a strict (`===`) comparison check.
@@ -706,6 +729,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#getAll
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T[]} - [$return]
      *
      * @param {string} [property] - The property to test on each Game Object in the Container.
      * @param {any} [value] - If property is set then the `property` must strictly equal this value to be included in the results.
@@ -749,6 +775,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#swap
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child1,child2]
+     *
      * @param {Phaser.GameObjects.GameObject} child1 - The first Game Object to swap.
      * @param {Phaser.GameObjects.GameObject} child2 - The second Game Object to swap.
      *
@@ -772,6 +801,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#moveTo
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
+     *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to move.
      * @param {number} index - The new position of the Game Object in this Container.
      *
@@ -792,6 +824,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#moveAbove
      * @since 3.55.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child1,child2]
+     *
      * @param {Phaser.GameObjects.GameObject} child1 - The Game Object to move above base Game Object.
      * @param {Phaser.GameObjects.GameObject} child2 - The base Game Object.
      *
@@ -811,6 +846,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#moveBelow
      * @since 3.55.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child1,child2]
      *
      * @param {Phaser.GameObjects.GameObject} child1 - The Game Object to move below base Game Object.
      * @param {Phaser.GameObjects.GameObject} child2 - The base Game Object.
@@ -833,6 +871,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#remove
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {(T|T[])} - [child]
      *
      * @param {Phaser.GameObjects.GameObject|Phaser.GameObjects.GameObject[]} child - The Game Object, or array of Game Objects, to be removed from the Container.
      * @param {boolean} [destroyChild=false] - Optionally call `destroy` on each child successfully removed from this Container.
@@ -927,14 +968,25 @@ var Container = new Class({
      */
     removeAll: function (destroyChild)
     {
-        var removed = ArrayUtils.RemoveBetween(this.list, 0, this.list.length, this.removeHandler, this);
+        var list = this.list;
 
         if (destroyChild)
         {
-            for (var i = 0; i < removed.length; i++)
+            for (var i = 0; i < list.length; i++)
             {
-                removed[i].destroy();
+                if (list[i] && list[i].scene)
+                {
+                    list[i].off(Events.DESTROY, this.remove, this);
+
+                    list[i].destroy();
+                }
             }
+
+            this.list = [];
+        }
+        else
+        {
+            ArrayUtils.RemoveBetween(list, 0, list.length, this.removeHandler, this);
         }
 
         return this;
@@ -946,6 +998,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#bringToTop
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
      *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to bring to the top of the Container.
      *
@@ -965,6 +1020,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#sendToBack
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
+     *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to send to the bottom of the Container.
      *
      * @return {this} This Container instance.
@@ -982,6 +1040,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#moveUp
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
+     *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to be moved in the Container.
      *
      * @return {this} This Container instance.
@@ -998,6 +1059,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#moveDown
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
      *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to be moved in the Container.
      *
@@ -1047,6 +1111,9 @@ var Container = new Class({
      * @method Phaser.GameObjects.Container#replace
      * @since 3.4.0
      *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [oldChild,newChild]
+     *
      * @param {Phaser.GameObjects.GameObject} oldChild - The Game Object in this Container that will be replaced.
      * @param {Phaser.GameObjects.GameObject} newChild - The Game Object to be added to this Container.
      * @param {boolean} [destroyChild=false] - Optionally call `destroy` on the Game Object if successfully removed from this Container.
@@ -1078,6 +1145,9 @@ var Container = new Class({
      *
      * @method Phaser.GameObjects.Container#exists
      * @since 3.4.0
+     *
+     * @generic {Phaser.GameObjects.GameObject} T
+     * @genericUse {T} - [child]
      *
      * @param {Phaser.GameObjects.GameObject} child - The Game Object to check for within this Container.
      *

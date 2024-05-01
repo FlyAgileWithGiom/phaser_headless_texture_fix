@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -20,7 +20,7 @@ var CONST = {
      * @type {string}
      * @since 3.0.0
      */
-    VERSION: '3.60.0-beta.9',
+    VERSION: '3.60.0',
 
     BlendModes: require('./renderer/BlendModes'),
 

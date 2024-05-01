@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -14,6 +14,7 @@
  * Listen to it from a Scene using: `this.load.on('start', listener)`.
  *
  * @event Phaser.Loader.Events#START
+ * @type {string}
  * @since 3.0.0
  *
  * @param {Phaser.Loader.LoaderPlugin} loader - A reference to the Loader Plugin that dispatched this event.

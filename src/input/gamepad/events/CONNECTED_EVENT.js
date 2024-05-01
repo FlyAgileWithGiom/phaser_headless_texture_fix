@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,6 +17,7 @@
  * already connected.
  *
  * @event Phaser.Input.Gamepad.Events#CONNECTED
+ * @type {string}
  * @since 3.0.0
  *
  * @param {Phaser.Input.Gamepad} pad - A reference to the Gamepad which was connected.

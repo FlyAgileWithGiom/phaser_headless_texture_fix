@@ -1,9 +1,10 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
+var BuildTilesetIndex = require('./parsers/tiled/BuildTilesetIndex');
 var Class = require('../utils/Class');
 var DegToRad = require('../math/DegToRad');
 var Formats = require('./Formats');
@@ -20,13 +21,15 @@ var TilemapLayer = require('./TilemapLayer');
 var Tileset = require('./Tileset');
 
 /**
+ * A predicate, to test each element of the array.
+ *
  * @callback TilemapFilterCallback
  *
  * @param {Phaser.GameObjects.GameObject} value - An object found in the filtered area.
  * @param {number} index - The index of the object within the array.
  * @param {Phaser.GameObjects.GameObject[]} array - An array of all the objects found.
  *
- * @return {Phaser.GameObjects.GameObject} The object.
+ * @return {boolean} A value that coerces to `true` to keep the element, or to `false` otherwise.
  */
 
 /**
@@ -83,6 +86,10 @@ var Tileset = require('./Tileset');
  * group name prepended with a '/'.  For example, consider a group called 'ParentGroup' with a
  * child called 'Layer 1'. In the Tilemap object, 'Layer 1' will have the name
  * 'ParentGroup/Layer 1'.
+ *
+ * The Phaser Tiled Parser does **not** support the 'Collection of Images' feature for a Tileset.
+ * You must ensure all of your tiles are contained in a single tileset image file (per layer)
+ * and have this 'embedded' in the exported Tiled JSON map data.
  *
  * @class Tilemap
  * @memberof Phaser.Tilemaps
@@ -243,6 +250,16 @@ var Tilemap = new Class({
         this.layers = mapData.layers;
 
         /**
+         * Master list of tiles -> x, y, index in tileset.
+         *
+         * @name Phaser.Tilemaps.Tilemap#tiles
+         * @type {array}
+         * @since 3.60.0
+         * @see Phaser.Tilemaps.Parsers.Tiled.BuildTilesetIndex
+         */
+        this.tiles = mapData.tiles;
+
+        /**
          * An array of Tilesets used in the map.
          *
          * @name Phaser.Tilemaps.Tilemap#tilesets
@@ -296,7 +313,8 @@ var Tilemap = new Class({
             WorldToTileY: TilemapComponents.GetWorldToTileYFunction(orientation),
             TileToWorldXY: TilemapComponents.GetTileToWorldXYFunction(orientation),
             TileToWorldX: TilemapComponents.GetTileToWorldXFunction(orientation),
-            TileToWorldY: TilemapComponents.GetTileToWorldYFunction(orientation)
+            TileToWorldY: TilemapComponents.GetTileToWorldYFunction(orientation),
+            GetTileCorners: TilemapComponents.GetTileCornersFunction(orientation)
         };
     },
 
@@ -369,11 +387,13 @@ var Tilemap = new Class({
      * If not specified, it will default to 0 or the value specified in the Tiled JSON file.
      * @param {number} [gid=0] - If adding multiple tilesets to a blank map, specify the starting
      * GID this set will use here.
+     * @param {object} [tileOffset={x: 0, y: 0}] - Tile texture drawing offset.
+     * If not specified, it will default to {0, 0}
      *
      * @return {?Phaser.Tilemaps.Tileset} Returns the Tileset object that was created or updated, or null if it
      * failed.
      */
-    addTilesetImage: function (tilesetName, key, tileWidth, tileHeight, tileMargin, tileSpacing, gid)
+    addTilesetImage: function (tilesetName, key, tileWidth, tileHeight, tileMargin, tileSpacing, gid, tileOffset)
     {
         if (tilesetName === undefined) { return null; }
         if (key === undefined || key === null) { key = tilesetName; }
@@ -410,12 +430,15 @@ var Tilemap = new Class({
         if (tileMargin === undefined) { tileMargin = 0; }
         if (tileSpacing === undefined) { tileSpacing = 0; }
         if (gid === undefined) { gid = 0; }
+        if (tileOffset === undefined) { tileOffset = { x: 0, y: 0 }; }
 
-        tileset = new Tileset(tilesetName, gid, tileWidth, tileHeight, tileMargin, tileSpacing);
+        tileset = new Tileset(tilesetName, gid, tileWidth, tileHeight, tileMargin, tileSpacing, undefined, undefined, tileOffset);
 
         tileset.setImage(texture);
 
         this.tilesets.push(tileset);
+
+        this.tiles = BuildTilesetIndex(this);
 
         return tileset;
     },
@@ -642,7 +665,7 @@ var Tilemap = new Class({
      * one criteria to your config. If you do not specify any criteria, then _all_ objects in the
      * Object Layer will be converted.
      *
-     * By default this method will convert objects into `Sprite` instances, but you can override
+     * By default this method will convert Objects into {@link Phaser.GameObjects.Sprite} instances, but you can override
      * this by providing your own class type:
      *
      * ```javascript
@@ -653,34 +676,48 @@ var Tilemap = new Class({
      * ```
      *
      * This will convert all Objects with a gid of 26 into your custom `Coin` class. You can pass
-     * any class type here, but it _must_ extend `Phaser.GameObjects.GameObject` as its base class.
+     * any class type here, but it _must_ extend {@link Phaser.GameObjects.GameObject} as its base class.
      * Your class will always be passed 1 parameter: `scene`, which is a reference to either the Scene
      * specified in the config object or, if not given, the Scene to which this Tilemap belongs. The
-     * class must have {@link Phaser.GameObjects.Components.Transform#setPosition} and
-     * {@link Phaser.GameObjects.Components.Texture#setTexture} methods.
+     * class must have {@link Phaser.GameObjects.Components.Transform#setPosition setPosition} and
+     * {@link Phaser.GameObjects.Components.Texture#setTexture setTexture} methods.
      *
-     * All properties from object are copied into the Game Object, so you can use this as an easy
-     * way to configure properties from within the map editor. For example giving an object a
+     * Custom properties on the Object are copied onto any existing properties on the Game Object, so you can use this as an easy
+     * way to configure properties from within the map editor. For example giving an Object a
      * property of `alpha: 0.5` in Tiled will be reflected in the Game Object that is created.
      *
-     * Custom object properties that do not exist as a Game Object property are set in the
-     * Game Objects {@link Phaser.GameObjects.GameObject#data data store}.
+     * Custom properties that do not exist on the Game Object are set in the
+     * Game Object's {@link Phaser.GameObjects.GameObject#data data store}.
      *
-     * Objects that are based on tiles (tilemap objects that are defined using the `gid` property) can be considered "hierarchical" by passing the third parameter `useTileset` true.
-     * Data such as texture, frame (assuming you've matched tileset and spritesheet geometries),
-     * `type` and `properties` will use the tileset information first and then override it with data set at the object level.
-     * For instance, a tileset which includes
-     * `[... a tileset of 16 elements...], [...ids 0, 1, and 2...], {id: 3, type: 'treadmill', speed:4}`
-     * and an object layer which includes
-     * `{id: 7, gid: 19, speed:5, rotation:90}`
-     * will be interpreted as though it were
-     * `{id: 7, gid:19, speed:5, rotation:90, type:'treadmill', texture:..., frame:3}`.
-     * You can then suppress this behavior by setting the boolean `ignoreTileset` for each `config` that should ignore
+     * When `useTileset` is `true` (the default), Tile Objects will inherit the texture and any tile properties
+     * from the tileset, and the local tile ID will be used as the texture frame. For the frame selection to work
+     * you need to load the tileset texture as a spritesheet so its frame names match the local tile IDs.
+     *
+     * For instance, a tileset tile
+     *
+     * ```
+     * { id: 3, type: 'treadmill', speed: 4 }
+     * ```
+     *
+     * with gid 19 and an object
+     *
+     * ```
+     * { id: 7, gid: 19, speed: 5, rotation: 90 }
+     * ```
+     *
+     * will be interpreted as
+     *
+     * ```
+     * { id: 7, gid: 19, speed: 5, rotation: 90, type: 'treadmill', texture: '[the tileset texture]', frame: 3 }
+     * ```
+     *
+     * You can suppress this behavior by setting the boolean `ignoreTileset` for each `config` that should ignore
      * object gid tilesets.
      *
-     * You can set a `container` property in the config. If given, the class will be added to
-     * the Container instance instead of the Scene.
-     * You can set named texture-`key` and texture-`frame` properties, which will be set on the resultant object.
+     * You can set a `container` property in the config. If given, the new Game Object will be added to
+     * the Container or Layer instance instead of the Scene.
+     *
+     * You can set named texture-`key` and texture-`frame` properties, which will be set on the new Game Object.
      *
      * Finally, you can provide an array of config objects, to convert multiple types of object in
      * a single call:
@@ -869,7 +906,7 @@ var Tilemap = new Class({
      * @since 3.0.0
      *
      * @param {(number|array)} indexes - The tile index, or array of indexes, to create Sprites from.
-     * @param {(number|array)} replacements - The tile index, or array of indexes, to change a converted
+     * @param {?(number|array)} replacements - The tile index, or array of indexes, to change a converted
      * tile to. Set to `null` to leave the tiles unchanged. If an array is given, it is assumed to be a
      * one-to-one mapping with the indexes array.
      * @param {Phaser.Types.GameObjects.Sprite.SpriteConfig} spriteConfig - The config object to pass into the Sprite creator (i.e. scene.make.sprite).
@@ -924,7 +961,7 @@ var Tilemap = new Class({
 
     /**
      * For each object in the given object layer, run the given filter callback function. Any
-     * objects that pass the filter test (i.e. where the callback returns true) will returned as a
+     * objects that pass the filter test (i.e. where the callback returns true) will be returned in a
      * new array. Similar to Array.prototype.Filter in vanilla JS.
      *
      * @method Phaser.Tilemaps.Tilemap#filterObjects
@@ -1173,7 +1210,7 @@ var Tilemap = new Class({
      *
      * @param {(string|number|Phaser.Tilemaps.TilemapLayer)} [layer] - The name of the layer from Tiled, the index of the layer in the map or Tilemap Layer. If not given will default to the maps current layer index.
      *
-     * @return {Phaser.Tilemaps.LayerData} The corresponding LayerData within this.layers.
+     * @return {?Phaser.Tilemaps.LayerData} The corresponding `LayerData` within `this.layers`, or null.
      */
     getLayer: function (layer)
     {
@@ -1245,7 +1282,7 @@ var Tilemap = new Class({
         {
             return layer;
         }
-        else if (layer instanceof TilemapLayer)
+        else if (layer instanceof TilemapLayer && layer.tilemap === this)
         {
             return layer.layerIndex;
         }
@@ -1764,7 +1801,7 @@ var Tilemap = new Class({
         {
             layer = this.layers[index];
 
-            layer.destroy();
+            layer.tilemapLayer.destroy();
 
             SpliceOne(this.layers, index);
 
@@ -2467,6 +2504,39 @@ var Tilemap = new Class({
     },
 
     /**
+     * Returns an array of Vector2s where each entry corresponds to the corner of the requested tile.
+     *
+     * The `tileX` and `tileY` parameters are in tile coordinates, not world coordinates.
+     *
+     * The corner coordinates are in world space, having factored in TilemapLayer scale, position
+     * and the camera, if given.
+     *
+     * The size of the array will vary based on the orientation of the map. For example an
+     * orthographic map will return an array of 4 vectors, where-as a hexagonal map will,
+     * of course, return an array of 6 corner vectors.
+     *
+     * If no layer is specified, the maps current layer is used.
+     *
+     * @method Phaser.Tilemaps.Tilemap#getTileCorners
+     * @since 3.60.0
+     *
+     * @param {number} tileX - The x coordinate, in tiles, not pixels.
+     * @param {number} tileY - The y coordinate, in tiles, not pixels.
+     * @param {Phaser.Cameras.Scene2D.Camera} [camera] - The Camera to use when calculating the tile index from the world values.
+     * @param {(string|number|Phaser.Tilemaps.TilemapLayer)} [layer] - The tile layer to use. If not given the current layer is used.
+     *
+     * @return {?Phaser.Math.Vector2[]} Returns an array of Vector2s, or null if the layer given was invalid.
+     */
+    getTileCorners: function (tileX, tileY, camera, layer)
+    {
+        layer = this.getLayer(layer);
+
+        if (layer === null) { return null; }
+
+        return this._convert.GetTileCorners(tileX, tileY, camera, layer);
+    },
+
+    /**
      * Randomizes the indexes of a rectangular region of tiles (in tile coordinates) within the
      * specified layer. Each tile will receive a new index. New indexes are drawn from the given
      * weightedIndexes array. An example weighted array:
@@ -2512,6 +2582,10 @@ var Tilemap = new Class({
      *
      * If no layer is specified, the maps current layer is used.
      *
+     * You cannot call this method for Isometric or Hexagonal tilemaps as they require
+     * both `worldX` and `worldY` values to determine the correct tile, instead you
+     * should use the `worldToTileXY` method.
+     *
      * @method Phaser.Tilemaps.Tilemap#worldToTileX
      * @since 3.0.0
      *
@@ -2536,6 +2610,10 @@ var Tilemap = new Class({
      * layers position, scale and scroll.
      *
      * If no layer is specified, the maps current layer is used.
+     *
+     * You cannot call this method for Isometric or Hexagonal tilemaps as they require
+     * both `worldX` and `worldY` values to determine the correct tile, instead you
+     * should use the `worldToTileXY` method.
      *
      * @method Phaser.Tilemaps.Tilemap#worldToTileY
      * @since 3.0.0
@@ -2595,6 +2673,7 @@ var Tilemap = new Class({
     {
         this.removeAllLayers();
 
+        this.tiles.length = 0;
         this.tilesets.length = 0;
         this.objects.length = 0;
 

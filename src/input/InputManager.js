@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -527,7 +527,7 @@ var InputManager = new Class({
      */
     updateInputPlugins: function (type, pointers)
     {
-        var scenes = this.game.scene.getScenes(true, true);
+        var scenes = this.game.scene.getScenes(false, true);
 
         this._tempSkip = false;
 
@@ -843,7 +843,7 @@ var InputManager = new Class({
     {
         var input = gameObject.input;
 
-        if (!input || !input.enabled || (!input.alwaysEnabled && !gameObject.willRender(camera)))
+        if (!input || !input.enabled || !gameObject.willRender(camera))
         {
             return false;
         }

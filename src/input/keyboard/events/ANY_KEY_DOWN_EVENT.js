@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -23,6 +23,7 @@
  * There are others. So, please check your extensions if you find you have specific keys that don't work.
  *
  * @event Phaser.Input.Keyboard.Events#ANY_KEY_DOWN
+ * @type {string}
  * @since 3.0.0
  *
  * @param {KeyboardEvent} event - The native DOM Keyboard Event. You can inspect this to learn more about the key that was pressed, any modifiers, etc.

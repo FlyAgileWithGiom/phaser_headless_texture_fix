@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -197,7 +197,7 @@ var ArcadePhysics = new Class({
      *
      * @param {Phaser.Types.Physics.Arcade.ArcadeColliderType} object1 - The first object or array of objects to check.
      * @param {Phaser.Types.Physics.Arcade.ArcadeColliderType} [object2] - The second object or array of objects to check, or `undefined`.
-     * @param {Phaser.Types.Physics.Arcade.ArcadePhysicsCallback} [collideCallback] - An optional callback function that is called if the objects collide.
+     * @param {Phaser.Types.Physics.Arcade.ArcadePhysicsCallback} [overlapCallback] - An optional callback function that is called if the objects overlap.
      * @param {Phaser.Types.Physics.Arcade.ArcadePhysicsCallback} [processCallback] - An optional callback function that lets you perform additional checks against the two objects if they overlap. If this is set then `collideCallback` will only be called if this callback returns `true`.
      * @param {*} [callbackContext] - The context in which to run the callbacks.
      *
@@ -417,10 +417,11 @@ var ArcadePhysics = new Class({
      * @method Phaser.Physics.Arcade.ArcadePhysics#closest
      * @since 3.0.0
      *
-     * @param {any} source - Any object with public `x` and `y` properties, such as a Game Object or Geometry object.
-     * @param {(Phaser.Physics.Arcade.Body[]|Phaser.Physics.Arcade.StaticBody[]|Phaser.GameObjects.GameObject[])} [targets] - The targets.
+     * @generic {Phaser.Physics.Arcade.Body|Phaser.Physics.Arcade.StaticBody|Phaser.GameObjects.GameObject} Target
+     * @param {Phaser.Types.Math.Vector2Like} source - Any object with public `x` and `y` properties, such as a Game Object or Geometry object.
+     * @param {Target[]} [targets] - The targets.
      *
-     * @return {?(Phaser.Physics.Arcade.Body|Phaser.Physics.Arcade.StaticBody|Phaser.GameObjects.GameObject)} The target closest to the given source point.
+     * @return {Target|null} The target closest to the given source point.
      */
     closest: function (source, targets)
     {

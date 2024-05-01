@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -55,6 +55,17 @@ var Clock = new Class({
          * @since 3.0.0
          */
         this.now = 0;
+
+        /**
+         * The time the Clock (and Scene) started, in milliseconds.
+         *
+         * This can be compared to the `time` parameter passed to a Scene's `update` method.
+         *
+         * @name Phaser.Time.Clock#startTime
+         * @type {number}
+         * @since 3.60.0
+         */
+        this.startTime = 0;
 
         /**
          * The scale of the Clock's time delta.
@@ -144,6 +155,8 @@ var Clock = new Class({
      */
     start: function ()
     {
+        this.startTime = this.systems.game.loop.time;
+
         var eventEmitter = this.systems.events;
 
         eventEmitter.on(SceneEvents.PRE_UPDATE, this.preUpdate, this);

@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -14,6 +14,7 @@
  * In that instance, listen to this event from within a Scene using: `this.sys.updateList.on('remove', listener)`.
  *
  * @event Phaser.Structs.Events#PROCESS_QUEUE_REMOVE
+ * @type {string}
  * @since 3.20.0
  *
  * @param {*} item - The item that was removed from the Process Queue.

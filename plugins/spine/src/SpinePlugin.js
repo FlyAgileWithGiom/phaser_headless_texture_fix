@@ -319,13 +319,25 @@ var SpinePlugin = new Class({
             };
         }
 
+        var isWebGL = this.isWebGL;
+
         var add = function (x, y, key, animationName, loop)
         {
+            if (isWebGL)
+            {
+                this.scene.sys.renderer.pipelines.clear();
+            }
+
             var spinePlugin = this.scene.sys[pluginKey];
             var spineGO = new SpineGameObject(this.scene, spinePlugin, x, y, key, animationName, loop);
 
             this.displayList.add(spineGO);
             this.updateList.add(spineGO);
+
+            if (isWebGL)
+            {
+                this.scene.sys.renderer.pipelines.rebind();
+            }
 
             return spineGO;
         };
@@ -333,6 +345,11 @@ var SpinePlugin = new Class({
         var make = function (config, addToScene)
         {
             if (config === undefined) { config = {}; }
+
+            if (isWebGL)
+            {
+                this.scene.sys.renderer.pipelines.clear();
+            }
 
             var key = GetValue(config, 'key', null);
             var animationName = GetValue(config, 'animationName', null);
@@ -362,6 +379,11 @@ var SpinePlugin = new Class({
             if (slotName)
             {
                 spineGO.setAttachment(slotName, attachmentName);
+            }
+
+            if (isWebGL)
+            {
+                this.scene.sys.renderer.pipelines.rebind();
             }
 
             return spineGO.refresh();
@@ -525,7 +547,7 @@ var SpinePlugin = new Class({
 
             atlas = new Spine.TextureAtlas(atlasEntry.data, function (path)
             {
-                return new Spine.canvas.CanvasTexture(textures.get(atlasEntry.prefix + path).getSourceImage());
+                return new Spine.canvas.CanvasTexture(textures.get(atlasEntry.prefix + key + ':' + path).getSourceImage());
             });
         }
 
@@ -570,7 +592,7 @@ var SpinePlugin = new Class({
 
             atlas = new Spine.TextureAtlas(atlasEntry.data, function (path)
             {
-                return new Spine.webgl.GLTexture(gl, textures.get(atlasEntry.prefix + path).getSourceImage(), false);
+                return new Spine.webgl.GLTexture(gl, textures.get(atlasEntry.prefix + key + ':' + path).getSourceImage(), false);
             });
         }
 
@@ -653,12 +675,14 @@ var SpinePlugin = new Class({
      * @param {boolean} [preMultipliedAlpha=false] - Do the texture files include pre-multiplied alpha or not?
      * @param {Phaser.Types.Loader.XHRSettingsObject} [textureXhrSettings] - An XHR Settings configuration object for the Spine json file. Used in replacement of the Loaders default XHR Settings.
      * @param {Phaser.Types.Loader.XHRSettingsObject} [atlasXhrSettings] - An XHR Settings configuration object for the Spine atlas file. Used in replacement of the Loaders default XHR Settings.
+     * @param {object} [settings] - An external Settings configuration object { prefix: '' }
      *
      * @return {Phaser.Loader.LoaderPlugin} The Loader instance.
      */
-    spineFileCallback: function (key, jsonURL, atlasURL, preMultipliedAlpha, jsonXhrSettings, atlasXhrSettings)
+    spineFileCallback: function (key, jsonURL, atlasURL, preMultipliedAlpha, jsonXhrSettings, atlasXhrSettings, settings)
     {
         var multifile;
+        settings = settings || {};
 
         if (Array.isArray(key))
         {
@@ -666,12 +690,18 @@ var SpinePlugin = new Class({
             {
                 multifile = new SpineFile(this, key[i]);
 
+                // Support prefix key
+                multifile.prefix = multifile.prefix || settings.prefix || '';
+
                 this.addFile(multifile.files);
             }
         }
         else
         {
             multifile = new SpineFile(this, key, jsonURL, atlasURL, preMultipliedAlpha, jsonXhrSettings, atlasXhrSettings);
+
+            // Support prefix key
+            multifile.prefix = multifile.prefix || settings.prefix || '';
 
             this.addFile(multifile.files);
         }

@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -33,17 +33,17 @@ var CanvasSnapshot = function (canvas, config)
 
     if (getPixel)
     {
-        var context = canvas.getContext('2d');
+        var context = canvas.getContext('2d', { willReadFrequently: false });
         var imageData = context.getImageData(x, y, 1, 1);
         var data = imageData.data;
 
-        callback.call(null, new Color(data[0], data[1], data[2], data[3] / 255));
+        callback.call(null, new Color(data[0], data[1], data[2], data[3]));
     }
     else if (x !== 0 || y !== 0 || width !== canvas.width || height !== canvas.height)
     {
         //  Area Grab
         var copyCanvas = CanvasPool.createWebGL(this, width, height);
-        var ctx = copyCanvas.getContext('2d');
+        var ctx = copyCanvas.getContext('2d', { willReadFrequently: true });
 
         if (width > 0 && height > 0)
         {

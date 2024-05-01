@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -12,6 +12,7 @@
  * instance, which tells the Game to carry on booting.
  *
  * @event Phaser.Textures.Events#READY
+ * @type {string}
  * @since 3.16.1
  */
 module.exports = 'ready';

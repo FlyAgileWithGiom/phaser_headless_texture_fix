@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,6 +17,7 @@
  * Please note that 'collide' and 'overlap' are two different things in Arcade Physics.
  *
  * @event Phaser.Physics.Arcade.Events#COLLIDE
+ * @type {string}
  * @since 3.0.0
  *
  * @param {Phaser.GameObjects.GameObject} gameObject1 - The first Game Object involved in the collision. This is the parent of `body1`.

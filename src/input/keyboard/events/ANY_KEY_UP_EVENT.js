@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -16,6 +16,7 @@
  * Finally, you can create Key objects, which you can also listen for events from. See [Keyboard.Events.UP]{@linkcode Phaser.Input.Keyboard.Events#event:UP} for details.
  *
  * @event Phaser.Input.Keyboard.Events#ANY_KEY_UP
+ * @type {string}
  * @since 3.0.0
  *
  * @param {KeyboardEvent} event - The native DOM Keyboard Event. You can inspect this to learn more about the key that was released, any modifiers, etc.

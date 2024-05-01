@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -12,8 +12,9 @@ var Events = require('./events');
 var GameEvents = require('../core/events');
 var GetFastValue = require('../utils/object/GetFastValue');
 var GetValue = require('../utils/object/GetValue');
-var Pad = require('../utils/string/Pad');
+var MATH_CONST = require('../math/const');
 var NumberArray = require('../utils/array/NumberArray');
+var Pad = require('../utils/string/Pad');
 
 /**
  * @classdesc
@@ -404,6 +405,8 @@ var AnimationManager = new Class({
 
         if (!data)
         {
+            console.warn('No Aseprite data found for: ' + key);
+
             return output;
         }
 
@@ -442,7 +445,7 @@ var AnimationManager = new Class({
 
                         if (frame)
                         {
-                            var frameDuration = GetFastValue(frame, 'duration', Number.MAX_SAFE_INTEGER);
+                            var frameDuration = GetFastValue(frame, 'duration', MATH_CONST.MAX_SAFE_INTEGER);
                             animFrames.push({ key: key, frame: frameKey, duration: frameDuration });
                             totalDuration += frameDuration;
                         }
@@ -532,6 +535,10 @@ var AnimationManager = new Class({
                 this.anims.set(key, anim);
 
                 this.emit(Events.ADD_ANIMATION, key, anim);
+            }
+            else
+            {
+                console.warn('AnimationManager key already exists: ' + key);
             }
         }
 
@@ -636,6 +643,13 @@ var AnimationManager = new Class({
         var out = GetValue(config, 'outputArray', []);
         var frames = GetValue(config, 'frames', false);
 
+        if (!this.textureManager.exists(key))
+        {
+            console.warn('Texture "%s" not found', key);
+
+            return out;
+        }
+
         var texture = this.textureManager.get(key);
 
         if (!texture)
@@ -672,7 +686,7 @@ var AnimationManager = new Class({
                 }
                 else
                 {
-                    console.warn('generateFrameNames: Frame missing: ' + frame + ' from texture: ' + key);
+                    console.warn('Frame "%s" not found in texture "%s"', frame, key);
                 }
             }
         }
@@ -702,7 +716,7 @@ var AnimationManager = new Class({
      * ```javascript
      * this.anims.create({
      *   key: 'boom',
-     *   frames: this.anims.generateFrameNames('explosion', {
+     *   frames: this.anims.generateFrameNumbers('explosion', {
      *     start: 0,
      *     end: 11
      *   })
@@ -723,7 +737,7 @@ var AnimationManager = new Class({
      * @since 3.0.0
      *
      * @param {string} key - The key for the texture containing the animation frames.
-     * @param {Phaser.Types.Animations.GenerateFrameNumbers} config - The configuration object for the animation frames.
+     * @param {Phaser.Types.Animations.GenerateFrameNumbers} [config] - The configuration object for the animation frames.
      *
      * @return {Phaser.Types.Animations.AnimationFrame[]} The array of {@link Phaser.Types.Animations.AnimationFrame} objects.
      */
@@ -734,6 +748,13 @@ var AnimationManager = new Class({
         var first = GetValue(config, 'first', false);
         var out = GetValue(config, 'outputArray', []);
         var frames = GetValue(config, 'frames', false);
+
+        if (!this.textureManager.exists(key))
+        {
+            console.warn('Texture "%s" not found', key);
+
+            return out;
+        }
 
         var texture = this.textureManager.get(key);
 
@@ -762,13 +783,15 @@ var AnimationManager = new Class({
 
         for (var i = 0; i < frames.length; i++)
         {
-            if (texture.has(frames[i]))
+            var frameName = frames[i];
+
+            if (texture.has(frameName))
             {
-                out.push({ key: key, frame: frames[i] });
+                out.push({ key: key, frame: frameName });
             }
             else
             {
-                console.warn('generateFrameNumbers: Frame ' + i + ' missing from texture: ' + key);
+                console.warn('Frame "%s" not found in texture "%s"', frameName, key);
             }
         }
 
@@ -788,6 +811,46 @@ var AnimationManager = new Class({
     get: function (key)
     {
         return this.anims.get(key);
+    },
+
+    /**
+     * Returns an array of all Animation keys that are using the given
+     * Texture. Only Animations that have at least one AnimationFrame
+     * entry using this texture will be included in the result.
+     *
+     * @method Phaser.Animations.AnimationManager#getAnimsFromTexture
+     * @since 3.60.0
+     *
+     * @param {(string|Phaser.Textures.Texture|Phaser.Textures.Frame)} key - The unique string-based key of the Texture, or a Texture, or Frame instance.
+     *
+     * @return {string[]} An array of Animation keys that feature the given Texture.
+     */
+    getAnimsFromTexture: function (key)
+    {
+        var texture = this.textureManager.get(key);
+
+        var match = texture.key;
+        var anims = this.anims.getArray();
+
+        var out = [];
+
+        for (var i = 0; i < anims.length; i++)
+        {
+            var anim = anims[i];
+            var frames = anim.frames;
+
+            for (var c = 0; c < frames.length; c++)
+            {
+                if (frames[c].textureKey === match)
+                {
+                    out.push(anim.key);
+
+                    break;
+                }
+            }
+        }
+
+        return out;
     },
 
     /**

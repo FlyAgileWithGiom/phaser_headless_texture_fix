@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -16,19 +16,24 @@
  * Listen to it from a Tween instance using `Tween.on('active', listener)`, i.e.:
  *
  * ```javascript
- * var tween = this.tweens.add({
+ * var tween = this.tweens.create({
  *     targets: image,
  *     x: 500,
  *     ease: 'Power1',
  *     duration: 3000
  * });
  * tween.on('active', listener);
+ * this.tweens.existing(tween);
  * ```
  *
+ * Note that this event is usually dispatched already by the time you call `this.tweens.add()`, and is
+ * meant for use with `tweens.create()` and/or `tweens.existing()`.
+ *
  * @event Phaser.Tweens.Events#TWEEN_ACTIVE
+ * @type {string}
  * @since 3.19.0
  *
  * @param {Phaser.Tweens.Tween} tween - A reference to the Tween instance that emitted the event.
- * @param {any[]} targets - An array of references to the target/s the Tween is operating on.
+ * @param {(any|any[])} targets - The targets of the Tween. If this Tween has multiple targets this will be an array of the targets.
  */
 module.exports = 'active';

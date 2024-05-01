@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -27,9 +27,10 @@
  * ```
  *
  * @event Phaser.Tweens.Events#TWEEN_COMPLETE
+ * @type {string}
  * @since 3.19.0
  *
  * @param {Phaser.Tweens.Tween} tween - A reference to the Tween instance that emitted the event.
- * @param {any[]} targets - An array of references to the target/s the Tween is operating on.
+ * @param {(any|any[])} targets - The targets of the Tween. If this Tween has multiple targets this will be an array of the targets.
  */
 module.exports = 'complete';

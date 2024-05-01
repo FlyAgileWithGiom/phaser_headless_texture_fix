@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -16,6 +16,7 @@
  * To listen for this event from a _specific_ Game Object, use the [GAMEOBJECT_DRAG_START]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_DRAG_START} event instead.
  *
  * @event Phaser.Input.Events#DRAG_START
+ * @type {string}
  * @since 3.0.0
  *
  * @param {Phaser.Input.Pointer} pointer - The Pointer responsible for triggering this event.

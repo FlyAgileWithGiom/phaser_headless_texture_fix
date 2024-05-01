@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -23,7 +23,7 @@
  * Or, if you have loaded a texture `atlas` with a key of `Level1`:
  *
  * ```javascript
- * this.load.on('filecomplete-atlas-Level1', function (key, type, data) {
+ * this.load.on('filecomplete-atlasjson-Level1', function (key, type, data) {
  *     // Your handler code
  * });
  * ```
@@ -41,6 +41,7 @@
  * You can also listen for the generic completion of files. See the [FILE_COMPLETE]{@linkcode Phaser.Loader.Events#event:FILE_COMPLETE} event.
  *
  * @event Phaser.Loader.Events#FILE_KEY_COMPLETE
+ * @type {string}
  * @since 3.0.0
  *
  * @param {string} key - The key of the file that just loaded and finished processing.

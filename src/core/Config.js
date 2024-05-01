@@ -1,18 +1,19 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
 var Class = require('../utils/Class');
 var CONST = require('../const');
+var DefaultPlugins = require('../plugins/DefaultPlugins');
 var Device = require('../device');
 var GetFastValue = require('../utils/object/GetFastValue');
 var GetValue = require('../utils/object/GetValue');
 var IsPlainObject = require('../utils/object/IsPlainObject');
-var PhaserMath = require('../math/');
 var NOOP = require('../utils/NOOP');
-var DefaultPlugins = require('../plugins/DefaultPlugins');
+var PhaserMath = require('../math/');
+var PIPELINE_CONST = require('../renderer/webgl/pipelines/const');
 var ValueToColor = require('../display/color/ValueToColor');
 
 /**
@@ -177,6 +178,18 @@ var Config = new Class({
          */
         this.autoFocus = GetValue(config, 'autoFocus', true);
 
+        /**
+         * @const {(number|boolean)} Phaser.Core.Config#stableSort - `false` or `0` = Use the built-in StableSort (needed for older browsers), `true` or `1` = Rely on ES2019 Array.sort being stable (modern browsers only), or `-1` = Try and determine this automatically based on browser inspection (not guaranteed to work, errs on side of caution).
+         */
+        this.stableSort = GetValue(config, 'stableSort', -1);
+
+        if (this.stableSort === -1)
+        {
+            this.stableSort = (Device.browser.es2019) ? 1 : 0;
+        }
+
+        Device.features.stableSort = this.stableSort;
+
         //  DOM Element Container
 
         /**
@@ -328,6 +341,16 @@ var Config = new Class({
         this.pipeline = GetValue(renderConfig, 'pipeline', null, config);
 
         /**
+         * @const {boolean} Phaser.Core.Config#autoMobilePipeline - Automatically enable the Mobile Pipeline if iOS or Android detected?
+         */
+        this.autoMobilePipeline = GetValue(renderConfig, 'autoMobilePipeline', true, config);
+
+        /**
+         * @const {string} Phaser.Core.Config#defaultPipeline - The WebGL Pipeline that Game Objects will use by default. Set to 'MultiPipeline' as standard. See also 'autoMobilePipeline'.
+         */
+        this.defaultPipeline = GetValue(renderConfig, 'defaultPipeline', PIPELINE_CONST.MULTI_PIPELINE, config);
+
+        /**
          * @const {boolean} Phaser.Core.Config#antialias - When set to `true`, WebGL uses linear interpolation to draw scaled or rotated textures, giving a smooth appearance. When set to `false`, WebGL uses nearest-neighbor interpolation, giving a crisper appearance. `false` also disables antialiasing of the game canvas itself, if the browser supports it, when the game canvas is scaled.
          */
         this.antialias = GetValue(renderConfig, 'antialias', true, config);
@@ -340,7 +363,7 @@ var Config = new Class({
         /**
          * @const {string} Phaser.Core.Config#mipmapFilter - Sets the `mipmapFilter` property when the WebGL renderer is created.
          */
-        this.mipmapFilter = GetValue(renderConfig, 'mipmapFilter', 'LINEAR', config);
+        this.mipmapFilter = GetValue(renderConfig, 'mipmapFilter', '', config);
 
         /**
          * @const {boolean} Phaser.Core.Config#desynchronized - When set to `true` it will create a desynchronized context for both 2D and WebGL. See https://developers.google.com/web/updates/2019/05/desynchronized for details.
@@ -504,6 +527,16 @@ var Config = new Class({
          * @const {string[]} Phaser.Core.Config#loaderLocalScheme - An array of schemes that the Loader considers as being 'local' files. Defaults to: `[ 'file://', 'capacitor://' ]`.
          */
         this.loaderLocalScheme = GetValue(config, 'loader.localScheme', [ 'file://', 'capacitor://' ]);
+
+        /**
+         * @const {number} Phaser.Core.Config#glowFXQuality - The quality of the Glow FX (defaults to 0.1)
+         */
+        this.glowFXQuality = GetValue(config, 'fx.glow.quality', 0.1);
+
+        /**
+         * @const {number} Phaser.Core.Config#glowFXDistance - The distance of the Glow FX (defaults to 10)
+         */
+        this.glowFXDistance = GetValue(config, 'fx.glow.distance', 10);
 
         /*
          * Allows `plugins` property to either be an array, in which case it just replaces

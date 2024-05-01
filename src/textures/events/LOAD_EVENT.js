@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -15,6 +15,7 @@
  * This event is dispatched after the [ADD]{@linkcode Phaser.Textures.Events#event:ADD} event.
  *
  * @event Phaser.Textures.Events#LOAD
+ * @type {string}
  * @since 3.0.0
  *
  * @param {string} key - The key of the Texture that was loaded by the Texture Manager.

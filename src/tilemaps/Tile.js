@@ -1,12 +1,13 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
-var CONST = require('./const/ORIENTATION_CONST');
 var Class = require('../utils/Class');
 var Components = require('../gameobjects/components');
+var CONST = require('./const/ORIENTATION_CONST');
+var DeepCopy = require('../utils/object/DeepCopy');
 var Rectangle = require('../geom/rectangle');
 
 /**
@@ -329,8 +330,8 @@ var Tile = new Class({
     },
 
     /**
-     * Copies the tile data & properties from the given tile to this tile. This copies everything
-     * except for position and interesting faces.
+     * Copies the tile data and properties from the given Tile to this Tile. This copies everything
+     * except for position and interesting face calculations.
      *
      * @method Phaser.Tilemaps.Tile#copy
      * @since 3.0.0
@@ -343,7 +344,7 @@ var Tile = new Class({
     {
         this.index = tile.index;
         this.alpha = tile.alpha;
-        this.properties = tile.properties;
+        this.properties = DeepCopy(tile.properties);
         this.visible = tile.visible;
         this.setFlip(tile.flipX, tile.flipY);
         this.tint = tile.tint;
@@ -775,11 +776,42 @@ var Tile = new Class({
         }
         else if (orientation === CONST.HEXAGONAL)
         {
+            var staggerAxis = this.layer.staggerAxis;
+            var staggerIndex = this.layer.staggerIndex;
             var len = this.layer.hexSideLength;
-            var rowHeight = ((this.baseHeight - len) / 2 + len);
+            var rowWidth;
+            var rowHeight;
 
-            this.pixelX = this.x * this.baseWidth + this.y % 2 * (this.baseWidth / 2);
-            this.pixelY = this.y * rowHeight;
+            if (staggerAxis === 'y')
+            {
+                rowHeight = ((this.baseHeight - len) / 2 + len);
+
+                if (staggerIndex === 'odd')
+                {
+                    this.pixelX = this.x * this.baseWidth + this.y % 2 * (this.baseWidth / 2);
+                }
+                else
+                {
+                    this.pixelX = this.x * this.baseWidth - this.y % 2 * (this.baseWidth / 2);
+                }
+
+                this.pixelY = this.y * rowHeight;
+            }
+            else if (staggerAxis === 'x')
+            {
+                rowWidth = ((this.baseWidth - len) / 2 + len);
+
+                this.pixelX = this.x * rowWidth;
+
+                if (staggerIndex === 'odd')
+                {
+                    this.pixelY = this.y * this.baseHeight + this.x % 2 * (this.baseHeight / 2);
+                }
+                else
+                {
+                    this.pixelY = this.y * this.baseHeight - this.x % 2 * (this.baseHeight / 2);
+                }
+            }
         }
 
         this.right = this.pixelX + this.baseWidth;

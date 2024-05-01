@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -19,6 +19,7 @@
  * Listen for it from a Video Game Object instance using `Video.on('complete', listener)`.
  *
  * @event Phaser.GameObjects.Events#VIDEO_COMPLETE
+ * @type {string}
  * @since 3.20.0
  *
  * @param {Phaser.GameObjects.Video} video - The Video Game Object which completed playback.

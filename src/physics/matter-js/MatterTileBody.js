@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -8,6 +8,7 @@ var Bodies = require('./lib/factory/Bodies');
 var Body = require('./lib/body/Body');
 var Class = require('../../utils/Class');
 var Components = require('./components');
+var DeepCopy = require('../../utils/object/DeepCopy');
 var EventEmitter = require('eventemitter3');
 var GetFastValue = require('../../utils/object/GetFastValue');
 var HasValue = require('../../utils/object/HasValue');
@@ -116,6 +117,15 @@ var MatterTileBody = new Class({
         else
         {
             this.setBody(body, addToWorld);
+        }
+
+        if (tile.flipX || tile.flipY)
+        {
+            var rotationPoint = { x: tile.getCenterX(), y: tile.getCenterY() };
+            var scaleX = (tile.flipX) ? -1 : 1;
+            var scaleY = (tile.flipY) ? -1 : 1;
+
+            Body.scale(body, scaleX, scaleY, rotationPoint);
         }
     },
 
@@ -235,8 +245,11 @@ var MatterTileBody = new Class({
         }
         else if (parts.length > 1)
         {
-            options.parts = parts;
-            this.setBody(Body.create(options), options.addToWorld);
+            var tempOptions = DeepCopy(options);
+
+            tempOptions.parts = parts;
+
+            this.setBody(Body.create(tempOptions), tempOptions.addToWorld);
         }
 
         return this;

@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -111,6 +111,11 @@ var DisplayList = new Class({
         if (gameObject.displayList && gameObject.displayList !== this)
         {
             gameObject.removeFromDisplayList();
+        }
+
+        if (gameObject.parentContainer)
+        {
+            gameObject.parentContainer.remove(gameObject);
         }
 
         if (!gameObject.displayList)

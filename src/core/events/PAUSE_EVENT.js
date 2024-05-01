@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -10,6 +10,7 @@
  * This event is dispatched when the Game loop enters a paused state, usually as a result of the Visibility Handler.
  *
  * @event Phaser.Core.Events#PAUSE
+ * @type {string}
  * @since 3.0.0
  */
 module.exports = 'pause';

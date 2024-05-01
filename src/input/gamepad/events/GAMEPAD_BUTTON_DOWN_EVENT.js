@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,6 +17,7 @@
  * You can also listen for a DOWN event from the Gamepad Plugin. See the [BUTTON_DOWN]{@linkcode Phaser.Input.Gamepad.Events#event:BUTTON_DOWN} event for details.
  *
  * @event Phaser.Input.Gamepad.Events#GAMEPAD_BUTTON_DOWN
+ * @type {string}
  * @since 3.10.0
  *
  * @param {number} index - The index of the button that was pressed.

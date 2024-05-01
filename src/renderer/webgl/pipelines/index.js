@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -13,16 +13,19 @@ var Extend = require('../../../utils/object/Extend');
 
 var Pipelines = {
 
+    FX: require('./fx'),
+
     BitmapMaskPipeline: require('./BitmapMaskPipeline'),
     Events: require('./events'),
-    GraphicsPipeline: require('./GraphicsPipeline'),
+    FXPipeline: require('./FXPipeline'),
     LightPipeline: require('./LightPipeline'),
+    MobilePipeline: require('./MobilePipeline'),
     MultiPipeline: require('./MultiPipeline'),
     PointLightPipeline: require('./PointLightPipeline'),
     PostFXPipeline: require('./PostFXPipeline'),
+    PreFXPipeline: require('./PreFXPipeline'),
     RopePipeline: require('./RopePipeline'),
     SinglePipeline: require('./SinglePipeline'),
-    SpriteFXPipeline: require('./SpriteFXPipeline'),
     UtilityPipeline: require('./UtilityPipeline')
 
 };

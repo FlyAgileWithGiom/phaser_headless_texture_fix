@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -10,7 +10,6 @@ var DefaultPlugins = require('../plugins/DefaultPlugins');
 var Events = require('./events');
 var GetPhysicsPlugins = require('./GetPhysicsPlugins');
 var GetScenePlugins = require('./GetScenePlugins');
-var GLOBAL_CONST = require('../const');
 var NOOP = require('../utils/NOOP');
 var Settings = require('./Settings');
 
@@ -574,6 +573,21 @@ var Systems = new Class({
     },
 
     /**
+     * Can this Scene receive Input events?
+     *
+     * @method Phaser.Scenes.Systems#canInput
+     * @since 3.60.0
+     *
+     * @return {boolean} `true` if this Scene can receive Input events.
+     */
+    canInput: function ()
+    {
+        var status = this.settings.status;
+
+        return (status > CONST.PENDING && status <= CONST.RUNNING);
+    },
+
+    /**
      * Is this Scene sleeping?
      *
      * @method Phaser.Scenes.Systems#isSleeping
@@ -767,11 +781,6 @@ var Systems = new Class({
 
         settings.active = false;
         settings.visible = false;
-
-        if (this.renderer === GLOBAL_CONST.WEBGL)
-        {
-            this.renderer.resetTextures(true);
-        }
 
         events.emit(Events.SHUTDOWN, this, data);
     },

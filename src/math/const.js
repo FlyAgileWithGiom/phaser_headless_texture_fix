@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -17,6 +17,10 @@ var MATH_CONST = {
 
     /**
      * The value of PI * 0.5.
+     *
+     * Yes, we understand that this should actually be PI * 2, but
+     * it has been like this for so long we can't change it now.
+     * If you need PI * 2, use the PI2 constant instead.
      *
      * @name Phaser.Math.TAU
      * @type {number}

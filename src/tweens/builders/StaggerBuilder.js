@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -78,7 +78,7 @@ var StaggerBuilder = function (value, options)
 
     if (grid)
     {
-        //  Pre-calc the grid to save doing it for ever tweendata update
+        //  Pre-calc the grid to save doing it for every TweenData update
         var gridWidth = grid[0];
         var gridHeight = grid[1];
 

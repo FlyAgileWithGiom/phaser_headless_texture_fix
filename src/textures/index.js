@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -32,6 +32,7 @@ var FilterMode = require('./const');
 var Textures = {
 
     CanvasTexture: require('./CanvasTexture'),
+    DynamicTexture: require('./DynamicTexture'),
     Events: require('./events'),
     FilterMode: FilterMode,
     Frame: require('./Frame'),

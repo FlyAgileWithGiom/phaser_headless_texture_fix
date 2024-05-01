@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -23,7 +23,7 @@ var ScaleModes = require('../renderer/ScaleModes');
  * @since 3.0.0
  *
  * @param {Phaser.Textures.Texture} texture - The Texture this TextureSource belongs to.
- * @param {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture)} source - The source image data.
+ * @param {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture|Phaser.Types.Textures.CompressedTextureData|Phaser.Textures.DynamicTexture)} source - The source image data.
  * @param {number} [width] - Optional width of the source image. If not given it's derived from the source itself.
  * @param {number} [height] - Optional height of the source image. If not given it's derived from the source itself.
  * @param {boolean} [flipY=false] - Sets the `UNPACK_FLIP_Y_WEBGL` flag the WebGL Texture uses during upload.
@@ -64,7 +64,7 @@ var TextureSource = new Class({
          * In Phaser 3.60 and above it can also be a Compressed Texture data object.
          *
          * @name Phaser.Textures.TextureSource#source
-         * @type {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture|Phaser.Types.Textures.CompressedTextureData)}
+         * @type {(HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|Phaser.GameObjects.RenderTexture|WebGLTexture|Phaser.Types.Textures.CompressedTextureData|Phaser.Textures.DynamicTexture)}
          * @since 3.12.0
          */
         this.source = source;
@@ -157,7 +157,7 @@ var TextureSource = new Class({
          * @type {boolean}
          * @since 3.12.0
          */
-        this.isRenderTexture = (source.type === 'RenderTexture');
+        this.isRenderTexture = (source.type === 'RenderTexture' || source.type === 'DynamicTexture');
 
         /**
          * Is the source image a WebGLTexture?
@@ -189,28 +189,6 @@ var TextureSource = new Class({
         this.glTexture = null;
 
         /**
-         * The current texture unit index as assigned by the WebGL Renderer.
-         * Un-used in canvas. Should be treated as read-only.
-         *
-         * @name Phaser.Textures.TextureSource#glIndex
-         * @type {number}
-         * @default 0
-         * @since 3.50.0
-         */
-        this.glIndex = 0;
-
-        /**
-         * The counter value when this texture was last assigned an index by the WebGL Renderer.
-         * Un-used in canvas. Should be treated as read-only.
-         *
-         * @name Phaser.Textures.TextureSource#glIndexCounter
-         * @type {number}
-         * @default -1
-         * @since 3.50.0
-         */
-        this.glIndexCounter = -1;
-
-        /**
          * Sets the `UNPACK_FLIP_Y_WEBGL` flag the WebGL Texture uses during upload.
          *
          * @name Phaser.Textures.TextureSource#flipY
@@ -236,38 +214,50 @@ var TextureSource = new Class({
 
         if (renderer)
         {
+            var source = this.source;
+
             if (renderer.gl)
             {
+                var image = this.image;
+                var flipY = this.flipY;
+                var width = this.width;
+                var height = this.height;
+                var scaleMode = this.scaleMode;
+
                 if (this.isCanvas)
                 {
-                    this.glTexture = renderer.createCanvasTexture(this.image, false, this.flipY);
+                    this.glTexture = renderer.createCanvasTexture(image, false, flipY);
                 }
                 else if (this.isVideo)
                 {
-                    this.glTexture = renderer.createVideoTexture(this.image, false, this.flipY);
+                    this.glTexture = renderer.createVideoTexture(image, false, flipY);
                 }
                 else if (this.isRenderTexture)
                 {
-                    this.image = this.source.canvas;
-
-                    this.glTexture = renderer.createTextureFromSource(null, this.width, this.height, this.scaleMode);
+                    this.glTexture = renderer.createTextureFromSource(null, width, height, scaleMode);
                 }
                 else if (this.isGLTexture)
                 {
-                    this.glTexture = this.source;
+                    this.glTexture = source;
                 }
                 else if (this.compressionAlgorithm)
                 {
-                    this.glTexture = renderer.createTextureFromSource(this.source);
+                    this.glTexture = renderer.createTextureFromSource(source);
                 }
                 else
                 {
-                    this.glTexture = renderer.createTextureFromSource(this.image, this.width, this.height, this.scaleMode);
+                    this.glTexture = renderer.createTextureFromSource(image, width, height, scaleMode);
+                }
+
+                if (typeof WEBGL_DEBUG)
+                {
+                    // eslint-disable-next-line camelcase
+                    this.glTexture.__SPECTOR_Metadata = { textureKey: this.texture.key };
                 }
             }
             else if (this.isRenderTexture)
             {
-                this.image = this.source.canvas;
+                this.image = source.canvas;
             }
         }
 
@@ -325,15 +315,18 @@ var TextureSource = new Class({
      */
     update: function ()
     {
-        var gl = this.renderer.gl;
+        var renderer = this.renderer;
+        var image = this.image;
+        var flipY = this.flipY;
+        var gl = renderer.gl;
 
         if (gl && this.isCanvas)
         {
-            this.glTexture = this.renderer.updateCanvasTexture(this.image, this.glTexture, this.flipY);
+            this.glTexture = renderer.updateCanvasTexture(image, this.glTexture, flipY);
         }
         else if (gl && this.isVideo)
         {
-            this.glTexture = this.renderer.updateVideoTexture(this.image, this.glTexture, this.flipY);
+            this.glTexture = renderer.updateVideoTexture(image, this.glTexture, flipY);
         }
     },
 

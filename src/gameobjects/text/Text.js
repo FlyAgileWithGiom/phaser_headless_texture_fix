@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -8,7 +8,6 @@ var AddToDOM = require('../../dom/AddToDOM');
 var CanvasPool = require('../../display/canvas/CanvasPool');
 var Class = require('../../utils/Class');
 var Components = require('../components');
-var GameEvents = require('../../core/events');
 var GameObject = require('../GameObject');
 var GetTextSize = require('./GetTextSize');
 var GetValue = require('../../utils/object/GetValue');
@@ -65,11 +64,11 @@ var TextStyle = require('./TextStyle');
  * @extends Phaser.GameObjects.Components.Crop
  * @extends Phaser.GameObjects.Components.Depth
  * @extends Phaser.GameObjects.Components.Flip
- * @extends Phaser.GameObjects.Components.FX
  * @extends Phaser.GameObjects.Components.GetBounds
  * @extends Phaser.GameObjects.Components.Mask
  * @extends Phaser.GameObjects.Components.Origin
  * @extends Phaser.GameObjects.Components.Pipeline
+ * @extends Phaser.GameObjects.Components.PostPipeline
  * @extends Phaser.GameObjects.Components.ScrollFactor
  * @extends Phaser.GameObjects.Components.Tint
  * @extends Phaser.GameObjects.Components.Transform
@@ -94,11 +93,11 @@ var Text = new Class({
         Components.Crop,
         Components.Depth,
         Components.Flip,
-        Components.FX,
         Components.GetBounds,
         Components.Mask,
         Components.Origin,
         Components.Pipeline,
+        Components.PostPipeline,
         Components.ScrollFactor,
         Components.Tint,
         Components.Transform,
@@ -127,6 +126,7 @@ var Text = new Class({
         this.setPosition(x, y);
         this.setOrigin(0, 0);
         this.initPipeline();
+        this.initPostPipeline(true);
 
         /**
          * The canvas element that the text is rendered to.
@@ -144,7 +144,7 @@ var Text = new Class({
          * @type {CanvasRenderingContext2D}
          * @since 3.0.0
          */
-        this.context = this.canvas.getContext('2d');
+        this.context = this.canvas.getContext('2d', { willReadFrequently: true });
 
         /**
          * The Text Style object.
@@ -288,8 +288,6 @@ var Text = new Class({
         {
             this.setLineSpacing(style.lineSpacing);
         }
-
-        scene.sys.game.events.on(GameEvents.CONTEXT_RESTORED, this.onContextRestored, this);
     },
 
     /**
@@ -445,7 +443,7 @@ var Text = new Class({
                         // failure with a fatal error
                         if (!newWord.length)
                         {
-                            throw new Error('This text\'s wordWrapWidth setting is less than a single character!');
+                            throw new Error('wordWrapWidth < a single character');
                         }
 
                         // Replace current word in array with remainder
@@ -461,11 +459,11 @@ var Text = new Class({
                     var offset = (words[j].length) ? j : j + 1;
 
                     // Collapse rest of sentence and remove any trailing white space
-                    var remainder = words.slice(offset).join(' ')
-                        .replace(/[ \n]*$/gi, '');
+                    var remainder = words.slice(offset).join(' ').replace(/[ \n]*$/gi, '');
 
                     // Prepend remainder to next line
-                    lines[i + 1] = remainder + ' ' + (lines[i + 1] || '');
+                    lines.splice(i + 1, 0, remainder);
+
                     linesCount = lines.length;
 
                     break; // Processing on this line
@@ -566,7 +564,7 @@ var Text = new Class({
      * @method Phaser.GameObjects.Text#getWrappedText
      * @since 3.0.0
      *
-     * @param {string} text - The text for which the wrapping will be calculated. If unspecified, the Text objects current text will be used.
+     * @param {string} [text] - The text for which the wrapping will be calculated. If unspecified, the Text objects current text will be used.
      *
      * @return {string[]} An array of strings with the pieces of wrapped text.
      */
@@ -608,6 +606,47 @@ var Text = new Class({
         if (value !== this._text)
         {
             this._text = value.toString();
+
+            this.updateText();
+        }
+
+        return this;
+    },
+
+    /**
+     * Appends the given text to the content already being displayed by this Text object.
+     *
+     * An array of strings will be joined with `\n` line breaks.
+     *
+     * @method Phaser.GameObjects.Text#appendText
+     * @since 3.60.0
+     *
+     * @param {(string|string[])} value - The string, or array of strings, to be appended to the existing content of this Text object.
+     * @param {boolean} [addCR=true] - Insert a carriage-return before the string value.
+     *
+     * @return {this} This Text object.
+     */
+    appendText: function (value, addCR)
+    {
+        if (addCR === undefined) { addCR = true; }
+
+        if (!value && value !== 0)
+        {
+            value = '';
+        }
+
+        if (Array.isArray(value))
+        {
+            value = value.join('\n');
+        }
+
+        value = value.toString();
+
+        var newText = this._text.concat((addCR) ? '\n' + value : value);
+
+        if (newText !== this._text)
+        {
+            this._text = newText;
 
             this.updateText();
         }
@@ -707,12 +746,12 @@ var Text = new Class({
     },
 
     /**
-     * Set the font size.
+     * Set the font size. Can be a string with a valid CSS unit, i.e. `16px`, or a number.
      *
      * @method Phaser.GameObjects.Text#setFontSize
      * @since 3.0.0
      *
-     * @param {number} size - The font size.
+     * @param {(string|number)} size - The font size.
      *
      * @return {this} This Text object.
      */
@@ -1177,6 +1216,11 @@ var Text = new Class({
 
             //  Because resizing the canvas resets the context
             style.syncFont(canvas, context);
+
+            if (style.rtl)
+            {
+                context.direction = 'rtl';
+            }
         }
         else
         {
@@ -1194,8 +1238,6 @@ var Text = new Class({
         }
 
         style.syncStyle(canvas, context);
-
-        context.textBaseline = 'alphabetic';
 
         //  Apply padding
         context.translate(padding.left, padding.top);
@@ -1262,14 +1304,14 @@ var Text = new Class({
 
             if (style.strokeThickness)
             {
-                this.style.syncShadow(context, style.shadowStroke);
+                style.syncShadow(context, style.shadowStroke);
 
                 context.strokeText(lines[i], linePositionX, linePositionY);
             }
 
             if (style.color)
             {
-                this.style.syncShadow(context, style.shadowFill);
+                style.syncShadow(context, style.shadowFill);
 
                 context.fillText(lines[i], linePositionX, linePositionY);
             }
@@ -1282,6 +1324,12 @@ var Text = new Class({
             this.frame.source.glTexture = this.renderer.canvasToTexture(canvas, this.frame.source.glTexture, true);
 
             this.frame.glTexture = this.frame.source.glTexture;
+
+            if (typeof WEBGL_DEBUG)
+            {
+                // eslint-disable-next-line camelcase
+                this.frame.glTexture.__SPECTOR_Metadata = { textureKey: 'Text Game Object' };
+            }
         }
 
         this.dirty = true;
@@ -1363,18 +1411,6 @@ var Text = new Class({
     },
 
     /**
-     * Internal context-restored handler.
-     *
-     * @method Phaser.GameObjects.Text#onContextRestored
-     * @protected
-     * @since 3.60.0
-     */
-    onContextRestored: function ()
-    {
-        this.dirty = true;
-    },
-
-    /**
      * Internal destroy handler, called as part of the destroy process.
      *
      * @method Phaser.GameObjects.Text#preDestroy
@@ -1391,8 +1427,6 @@ var Text = new Class({
         CanvasPool.remove(this.canvas);
 
         this.texture.destroy();
-
-        this.scene.sys.game.events.off(GameEvents.CONTEXT_RESTORED, this.onContextRestored, this);
     }
 
     /**

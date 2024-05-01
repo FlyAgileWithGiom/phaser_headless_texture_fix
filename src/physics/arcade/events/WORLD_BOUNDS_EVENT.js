@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -15,6 +15,7 @@
  * Listen to it from a Scene using: `this.physics.world.on('worldbounds', listener)`.
  *
  * @event Phaser.Physics.Arcade.Events#WORLD_BOUNDS
+ * @type {string}
  * @since 3.0.0
  *
  * @param {Phaser.Physics.Arcade.Body} body - The Arcade Physics Body that hit the world bounds.

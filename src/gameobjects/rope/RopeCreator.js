@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -42,11 +42,6 @@ GameObjectCreator.register('rope', function (config, addToScene)
     }
 
     BuildGameObject(this.scene, rope, config);
-
-    if (!config.add)
-    {
-        this.updateList.add(rope);
-    }
 
     return rope;
 });

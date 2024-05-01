@@ -1,20 +1,24 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
 var Class = require('../../utils/Class');
 var CONST = require('./pipelines/const');
 var CustomMap = require('../../structs/Map');
+var Device = require('../../device/');
 var GetFastValue = require('../../utils/object/GetFastValue');
 var RenderTarget = require('./RenderTarget');
 var SnapCeil = require('../../math/snap/SnapCeil');
 
 //  Default Phaser 3 Pipelines
 var BitmapMaskPipeline = require('./pipelines/BitmapMaskPipeline');
-var GraphicsPipeline = require('./pipelines/GraphicsPipeline');
+var FX = require('./pipelines/fx');
+var FX_CONST = require('../../fx/const');
+var FXPipeline = require('./pipelines/FXPipeline');
 var LightPipeline = require('./pipelines/LightPipeline');
+var MobilePipeline = require('./pipelines/MobilePipeline');
 var MultiPipeline = require('./pipelines/MultiPipeline');
 var PointLightPipeline = require('./pipelines/PointLightPipeline');
 var RopePipeline = require('./pipelines/RopePipeline');
@@ -29,16 +33,17 @@ var UtilityPipeline = require('./pipelines/UtilityPipeline');
  * The `WebGLRenderer` owns a single instance of the Pipeline Manager, which you can access
  * via the `WebGLRenderer.pipelines` property.
  *
- * By default, there are 8 pipelines installed into the Pipeline Manager when Phaser boots:
+ * By default, there are 9 pipelines installed into the Pipeline Manager when Phaser boots:
  *
  * 1. The Multi Pipeline. Responsible for all multi-texture rendering, i.e. Sprites and Tilemaps.
- * 2. The Graphics Pipeline. Responsible for rendering Graphics and Shape objects.
- * 3. The Rope Pipeline. Responsible for rendering the Rope Game Object.
- * 4. The Light Pipeline. Responsible for rendering the Light Game Object.
- * 5. The Point Light Pipeline. Responsible for rendering the Point Light Game Object.
- * 6. The Single Pipeline. Responsible for rendering Game Objects that explicitly require one bound texture.
- * 7. The Bitmap Mask Pipeline. Responsible for Bitmap Mask rendering.
- * 8. The Utility Pipeline. Responsible for providing lots of handy texture manipulation functions.
+ * 2. The Rope Pipeline. Responsible for rendering the Rope Game Object.
+ * 3. The Light Pipeline. Responsible for rendering the Light Game Object.
+ * 4. The Point Light Pipeline. Responsible for rendering the Point Light Game Object.
+ * 5. The Single Pipeline. Responsible for rendering Game Objects that explicitly require one bound texture.
+ * 6. The Bitmap Mask Pipeline. Responsible for Bitmap Mask rendering.
+ * 7. The Utility Pipeline. Responsible for providing lots of handy texture manipulation functions.
+ * 8. The Mobile Pipeline. Responsible for rendering on mobile with single-bound textures.
+ * 9. The FX Pipeline. Responsible for rendering Game Objects with special FX applied to them.
  *
  * You can add your own custom pipeline via the `PipelineManager.add` method. Pipelines are
  * identified by unique string-based keys.
@@ -91,17 +96,53 @@ var PipelineManager = new Class({
             [ CONST.ROPE_PIPELINE, RopePipeline ],
             [ CONST.LIGHT_PIPELINE, LightPipeline ],
             [ CONST.POINTLIGHT_PIPELINE, PointLightPipeline ],
-            [ CONST.GRAPHICS_PIPELINE, GraphicsPipeline ]
+            [ CONST.MOBILE_PIPELINE, MobilePipeline ],
+            [ CONST.FX_PIPELINE, FXPipeline ]
         ]);
 
         /**
          * This map stores all Post FX Pipeline classes available in this manager.
          *
+         * As of v3.60 this is now populated by default with the following
+         * Post FX Pipelines:
+         *
+         * * Barrel
+         * * Bloom
+         * * Blur
+         * * Bokeh / TiltShift
+         * * Circle
+         * * ColorMatrix
+         * * Displacement
+         * * Glow
+         * * Gradient
+         * * Pixelate
+         * * Shadow
+         * * Shine
+         * * Vignette
+         * * Wipe
+         *
+         * See the FX Controller class for more details.
+         *
          * @name Phaser.Renderer.WebGL.PipelineManager#postPipelineClasses
          * @type {Phaser.Structs.Map.<string, Class>}
          * @since 3.50.0
          */
-        this.postPipelineClasses = new CustomMap();
+        this.postPipelineClasses = new CustomMap([
+            [ String(FX_CONST.BARREL), FX.Barrel ],
+            [ String(FX_CONST.BLOOM), FX.Bloom ],
+            [ String(FX_CONST.BLUR), FX.Blur ],
+            [ String(FX_CONST.BOKEH), FX.Bokeh ],
+            [ String(FX_CONST.CIRCLE), FX.Circle ],
+            [ String(FX_CONST.COLOR_MATRIX), FX.ColorMatrix ],
+            [ String(FX_CONST.DISPLACEMENT), FX.Displacement ],
+            [ String(FX_CONST.GLOW), FX.Glow ],
+            [ String(FX_CONST.GRADIENT), FX.Gradient ],
+            [ String(FX_CONST.PIXELATE), FX.Pixelate ],
+            [ String(FX_CONST.SHADOW), FX.Shadow ],
+            [ String(FX_CONST.SHINE), FX.Shine ],
+            [ String(FX_CONST.VIGNETTE), FX.Vignette ],
+            [ String(FX_CONST.WIPE), FX.Wipe ]
+        ]);
 
         /**
          * This map stores all pipeline instances in this manager.
@@ -113,6 +154,16 @@ var PipelineManager = new Class({
          * @since 3.50.0
          */
         this.pipelines = new CustomMap();
+
+        /**
+         * The default Game Object pipeline.
+         *
+         * @name Phaser.Renderer.WebGL.PipelineManager#default
+         * @type {Phaser.Renderer.WebGL.WebGLPipeline}
+         * @default null
+         * @since 3.60.0
+         */
+        this.default = null;
 
         /**
          * Current pipeline in use by the WebGLRenderer.
@@ -171,6 +222,32 @@ var PipelineManager = new Class({
          * @since 3.50.0
          */
         this.UTILITY_PIPELINE = null;
+
+        /**
+         * A constant-style reference to the Mobile Pipeline Instance.
+         *
+         * This is the default Phaser 3 mobile pipeline and is used by the WebGL Renderer to manage
+         * camera effects and more on mobile devices. This property is set during the `boot` method.
+         *
+         * @name Phaser.Renderer.WebGL.PipelineManager#MOBILE_PIPELINE
+         * @type {Phaser.Renderer.WebGL.Pipelines.MobilePipeline}
+         * @default null
+         * @since 3.60.0
+         */
+        this.MOBILE_PIPELINE = null;
+
+        /**
+         * A constant-style reference to the FX Pipeline Instance.
+         *
+         * This is the default Phaser 3 FX pipeline and is used by the WebGL Renderer to manage
+         * Game Objects with special effects enabled. This property is set during the `boot` method.
+         *
+         * @name Phaser.Renderer.WebGL.PipelineManager#FX_PIPELINE
+         * @type {Phaser.Renderer.WebGL.Pipelines.FXPipeline}
+         * @default null
+         * @since 3.60.0
+         */
+        this.FX_PIPELINE = null;
 
         /**
          * A reference to the Full Frame 1 Render Target that belongs to the
@@ -257,7 +334,7 @@ var PipelineManager = new Class({
         /**
          * The amount in which each target frame will increase.
          *
-         * Defaults to 64px but can be overridden in the config.
+         * Defaults to 32px but can be overridden in the config.
          *
          * @name Phaser.Renderer.WebGL.PipelineManager#frameInc
          * @type {number}
@@ -287,9 +364,11 @@ var PipelineManager = new Class({
      * @method Phaser.Renderer.WebGL.PipelineManager#boot
      * @since 3.50.0
      *
-     * @param {Phaser.Types.Core.PipelineConfig} [pipelineConfig] - The pipeline configuration object as set in the Game Config.
+     * @param {Phaser.Types.Core.PipelineConfig} pipelineConfig - The pipeline configuration object as set in the Game Config.
+     * @param {string} defaultPipeline - The name of the default Game Object pipeline, as set in the Game Config
+     * @param {boolean} autoMobilePipeline - Automatically set the default pipeline to mobile if non-desktop detected?
      */
-    boot: function (pipelineConfig)
+    boot: function (pipelineConfig, defaultPipeline, autoMobilePipeline)
     {
         //  Create the default RenderTextures
         var renderer = this.renderer;
@@ -315,14 +394,14 @@ var PipelineManager = new Class({
 
             //  Duplicate RT for alt swap frame
             targets.push(new RenderTarget(renderer, targetWidth, targetWidth));
+
+            this.maxDimension = targetWidth;
         }
 
         //  Full-screen RTs
         targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
         targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
         targets.push(new RenderTarget(renderer, renderWidth, renderHeight, 1, 0, true, true));
-
-        this.maxDimension = (qty - 1) * this.frameInc;
 
         //  Install each of the default pipelines
 
@@ -351,6 +430,8 @@ var PipelineManager = new Class({
         //  Our const-like references
         this.MULTI_PIPELINE = this.get(CONST.MULTI_PIPELINE);
         this.BITMAPMASK_PIPELINE = this.get(CONST.BITMAPMASK_PIPELINE);
+        this.MOBILE_PIPELINE = this.get(CONST.MOBILE_PIPELINE);
+        this.FX_PIPELINE = this.get(CONST.FX_PIPELINE);
 
         //  And now the ones in the config, if any
 
@@ -361,6 +442,8 @@ var PipelineManager = new Class({
                 var pipelineClass = pipelineConfig[pipelineName];
 
                 instance = new pipelineClass(game);
+
+                instance.name = pipelineName;
 
                 if (instance.isPostFX)
                 {
@@ -374,6 +457,45 @@ var PipelineManager = new Class({
                 }
             }
         }
+
+        //  Finally, set the Default Game Object pipeline
+        this.default = this.get(defaultPipeline);
+
+        if (autoMobilePipeline && !Device.os.desktop)
+        {
+            this.default = this.MOBILE_PIPELINE;
+        }
+    },
+
+    /**
+     * Sets the default pipeline being used by Game Objects.
+     *
+     * If no instance, or matching name, exists in this manager, it returns `undefined`.
+     *
+     * You can use this to override the default pipeline, for example by forcing
+     * the Mobile or Multi Tint Pipelines, which is especially useful for development
+     * testing.
+     *
+     * Make sure you call this method _before_ creating any Game Objects, as it will
+     * only impact Game Objects created after you call it.
+     *
+     * @method Phaser.Renderer.WebGL.PipelineManager#setDefaultPipeline
+     * @since 3.60.0
+     *
+     * @param {(string|Phaser.Renderer.WebGL.WebGLPipeline)} pipeline - Either the string-based name of the pipeline to get, or a pipeline instance to look-up.
+     *
+     * @return {Phaser.Renderer.WebGL.WebGLPipeline} The pipeline instance that was set as default, or `undefined` if not found.
+     */
+    setDefaultPipeline: function (pipeline)
+    {
+        var instance = this.get(pipeline);
+
+        if (instance)
+        {
+            this.default = instance;
+        }
+
+        return instance;
     },
 
     /**
@@ -434,7 +556,7 @@ var PipelineManager = new Class({
             pipeline.boot();
         }
 
-        if (renderer.width !== 0 && renderer.height !== 0 && !pipeline.isSpriteFX)
+        if (renderer.width !== 0 && renderer.height !== 0 && !pipeline.isPreFX)
         {
             pipeline.resize(renderer.width, renderer.height);
         }
@@ -553,36 +675,46 @@ var PipelineManager = new Class({
      *
      * @param {(string|function|Phaser.Renderer.WebGL.Pipelines.PostFXPipeline)} pipeline - Either the string-based name of the pipeline to get, or a pipeline instance, or class to look-up.
      * @param {Phaser.GameObjects.GameObject} [gameObject] - If this post pipeline is being installed into a Game Object or Camera, this is a reference to it.
+     * @param {object} [config] - Optional pipeline data object that is set in to the `postPipelineData` property of this Game Object.
      *
      * @return {Phaser.Renderer.WebGL.Pipelines.PostFXPipeline} The pipeline instance, or `undefined` if not found.
      */
-    getPostPipeline: function (pipeline, gameObject)
+    getPostPipeline: function (pipeline, gameObject, config)
     {
         var pipelineClasses = this.postPipelineClasses;
 
         var instance;
+        var pipelineName = '';
+        var pipetype = typeof pipeline;
 
-        if (typeof pipeline === 'string')
+        if (pipetype === 'string' || pipetype === 'number')
         {
             instance = pipelineClasses.get(pipeline);
+            pipelineName = pipeline;
         }
-        else if (typeof pipeline === 'function')
+        else if (pipetype === 'function')
         {
             //  A class
             if (pipelineClasses.contains(pipeline))
             {
                 instance = pipeline;
             }
+
+            pipelineName = pipeline.name;
         }
-        else if (typeof pipeline === 'object')
+        else if (pipetype === 'object')
         {
             //  Instance
             instance = pipelineClasses.get(pipeline.name);
+
+            pipelineName = pipeline.name;
         }
 
         if (instance)
         {
-            var newPipeline = new instance(this.game);
+            var newPipeline = new instance(this.game, config);
+
+            newPipeline.name = pipelineName;
 
             if (gameObject)
             {
@@ -675,9 +807,15 @@ var PipelineManager = new Class({
 
     /**
      * This method is called by the `WebGLPipeline.batchQuad` method, right before a quad
-     * belonging to a Game Object is about to be added to the batch. It causes a batch
-     * flush, then calls the `preBatch` method on the post-fx pipelines belonging to the
-     * Game Object.
+     * belonging to a Game Object is about to be added to the batch.
+     *
+     * It is also called directly bu custom Game Objects, such as Nine Slice or Mesh,
+     * from their render methods.
+     *
+     * It causes a batch flush, then calls the `preBatch` method on the Post FX Pipelines
+     * belonging to the Game Object.
+     *
+     * It should be followed by a call to `postBatch` to complete the process.
      *
      * @method Phaser.Renderer.WebGL.PipelineManager#preBatch
      * @since 3.50.0
@@ -707,9 +845,15 @@ var PipelineManager = new Class({
 
     /**
      * This method is called by the `WebGLPipeline.batchQuad` method, right after a quad
-     * belonging to a Game Object has been added to the batch. It causes a batch
-     * flush, then calls the `postBatch` method on the post-fx pipelines belonging to the
-     * Game Object.
+     * belonging to a Game Object has been added to the batch.
+     *
+     * It is also called directly bu custom Game Objects, such as Nine Slice or Mesh,
+     * from their render methods.
+     *
+     * It causes a batch flush, then calls the `postBatch` method on the Post FX Pipelines
+     * belonging to the Game Object.
+     *
+     * It should be preceeded by a call to `preBatch` to start the process.
      *
      * @method Phaser.Renderer.WebGL.PipelineManager#postBatch
      * @since 3.50.0
@@ -1071,6 +1215,19 @@ var PipelineManager = new Class({
     },
 
     /**
+     * Sets the FX Pipeline to be the currently bound pipeline.
+     *
+     * @method Phaser.Renderer.WebGL.PipelineManager#setFX
+     * @since 3.60.0
+     *
+     * @return {Phaser.Renderer.WebGL.Pipelines.FXPipeline} The FX Pipeline instance.
+     */
+    setFX: function ()
+    {
+        return this.set(this.FX_PIPELINE);
+    },
+
+    /**
      * Use this to reset the gl context to the state that Phaser requires to continue rendering.
      *
      * Calling this will:
@@ -1120,6 +1277,13 @@ var PipelineManager = new Class({
 
         renderer.setBlendMode(0, true);
 
+        var vao = renderer.vaoExtension;
+
+        if (vao)
+        {
+            vao.bindVertexArrayOES(null);
+        }
+
         var entries = this.pipelines.entries;
 
         for (var key in entries)
@@ -1133,8 +1297,6 @@ var PipelineManager = new Class({
 
             pipeline.rebind();
         }
-
-        renderer.resetTextures();
     },
 
     /**
@@ -1169,6 +1331,13 @@ var PipelineManager = new Class({
         renderer.currentProgram = null;
 
         renderer.setBlendMode(0, true);
+
+        var vao = renderer.vaoExtension;
+
+        if (vao)
+        {
+            vao.bindVertexArrayOES(null);
+        }
     },
 
     /**
@@ -1179,6 +1348,8 @@ var PipelineManager = new Class({
      *
      * @method Phaser.Renderer.WebGL.PipelineManager#getRenderTarget
      * @since 3.60.0
+     *
+     * @param {number} size - The maximum dimension required.
      *
      * @return {Phaser.Renderer.WebGL.RenderTarget} A Render Target large enough to fit the sprite.
      */
@@ -1253,6 +1424,7 @@ var PipelineManager = new Class({
         this.classes = null;
         this.postPipelineClasses = null;
         this.pipelines = null;
+        this.default = null;
         this.current = null;
         this.previous = null;
     }

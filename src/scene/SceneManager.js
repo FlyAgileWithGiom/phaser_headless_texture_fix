@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -142,6 +142,18 @@ var SceneManager = new Class({
          */
         this.customViewports = 0;
 
+        /**
+         * This system Scene is created during `bootQueue` and is a default
+         * empty Scene that lives outside of the Scene list, but can be used
+         * by plugins and managers that need access to a live Scene, without
+         * being tied to one.
+         *
+         * @name Phaser.Scenes.SceneManager#systemScene
+         * @type {Phaser.Scene}
+         * @since 3.60.0
+         */
+        this.systemScene;
+
         if (sceneConfig)
         {
             if (!Array.isArray(sceneConfig))
@@ -177,6 +189,9 @@ var SceneManager = new Class({
         {
             return;
         }
+
+        //  Create the system Scene
+        this.systemScene = this.createSceneFromInstance('__SYSTEM', new Scene());
 
         var i;
         var entry;
@@ -286,8 +301,6 @@ var SceneManager = new Class({
             //  Clear the pending lists
             this._start.length = 0;
             this._pending.length = 0;
-
-            return;
         }
 
         for (i = 0; i < this._queue.length; i++)
@@ -318,7 +331,7 @@ var SceneManager = new Class({
      * @since 3.0.0
      *
      * @param {string} key - A unique key used to reference the Scene, i.e. `MainMenu` or `Level1`.
-     * @param {(Phaser.Scene|Phaser.Types.Scenes.SettingsConfig|Phaser.Types.Scenes.CreateSceneFromObjectConfig|function)} sceneConfig - The config for the Scene
+     * @param {(Phaser.Types.Scenes.SceneType)} sceneConfig - The config for the Scene
      * @param {boolean} [autoStart=false] - If `true` the Scene will be started immediately after being added.
      * @param {object} [data] - Optional data object. This will be set as `Scene.settings.data` and passed to `Scene.init`, and `Scene.create`.
      *
@@ -559,6 +572,11 @@ var SceneManager = new Class({
             if (sys.settings.status > CONST.START && sys.settings.status <= CONST.RUNNING)
             {
                 sys.step(time, delta);
+            }
+
+            if (sys.scenePlugin._target)
+            {
+                sys.scenePlugin.step(time, delta);
             }
         }
     },
@@ -834,6 +852,8 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#getScenes
      * @since 3.16.0
      *
+     * @generic {Phaser.Scene[]} T - [$return]
+     *
      * @param {boolean} [isActive=true] - Only include Scene's that are currently active?
      * @param {boolean} [inReverse=false] - Return the array of Scenes in reverse?
      *
@@ -861,14 +881,21 @@ var SceneManager = new Class({
     },
 
     /**
-     * Retrieves a Scene.
+     * Retrieves a Scene based on the given key.
+     *
+     * If an actual Scene is passed to this method, it can be used to check if
+     * its currently within the Scene Manager, or not.
      *
      * @method Phaser.Scenes.SceneManager#getScene
      * @since 3.0.0
      *
-     * @param {(string|Phaser.Scene)} key - The Scene to retrieve.
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     * @genericUse {T} - [$return]
      *
-     * @return {?Phaser.Scene} The Scene.
+     * @param {(string|Phaser.Scene)} key - The key of the Scene to retrieve.
+     *
+     * @return {?Phaser.Scene} The Scene, or `null` if no matching Scene was found.
      */
     getScene: function (key)
     {
@@ -899,6 +926,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#isActive
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to check.
      *
      * @return {boolean} Whether the Scene is running, or `null` if no matching Scene was found.
@@ -920,6 +950,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#isPaused
      * @since 3.17.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to check.
      *
@@ -943,6 +976,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#isVisible
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to check.
      *
      * @return {boolean} Whether the Scene is visible, or `null` if no matching Scene was found.
@@ -965,6 +1001,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#isSleeping
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to check.
      *
      * @return {boolean} Whether the Scene is sleeping, or `null` if no matching Scene was found.
@@ -986,6 +1025,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#pause
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to pause.
      * @param {object} [data] - An optional data object that will be passed to the Scene and emitted by its pause event.
@@ -1010,6 +1052,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#resume
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to resume.
      * @param {object} [data] - An optional data object that will be passed to the Scene and emitted by its resume event.
      *
@@ -1033,6 +1078,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#sleep
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to put to sleep.
      * @param {object} [data] - An optional data object that will be passed to the Scene and emitted by its sleep event.
      *
@@ -1055,6 +1103,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#wake
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to wake up.
      * @param {object} [data] - An optional data object that will be passed to the Scene and emitted by its wake event.
@@ -1084,6 +1135,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#run
      * @since 3.10.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to run.
      * @param {object} [data] - A data object that will be passed to the Scene on start, wake, or resume.
@@ -1131,6 +1185,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#start
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to start.
      * @param {object} [data] - Optional data object to pass to `Scene.Settings` and `Scene.init`, and `Scene.create`.
@@ -1223,6 +1280,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#stop
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to stop.
      * @param {object} [data] - Optional data object to pass to Scene.shutdown.
      *
@@ -1236,8 +1296,11 @@ var SceneManager = new Class({
         {
             var loader = scene.sys.load;
 
-            loader.off(LoaderEvents.COMPLETE, this.loadComplete, this);
-            loader.off(LoaderEvents.COMPLETE, this.payloadComplete, this);
+            if (loader)
+            {
+                loader.off(LoaderEvents.COMPLETE, this.loadComplete, this);
+                loader.off(LoaderEvents.COMPLETE, this.payloadComplete, this);
+            }
 
             scene.sys.shutdown(data);
         }
@@ -1250,6 +1313,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#switch
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [from,to]
      *
      * @param {(string|Phaser.Scene)} from - The Scene to sleep.
      * @param {(string|Phaser.Scene)} to - The Scene to start.
@@ -1284,6 +1350,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#getAt
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {T} - [$return]
+     *
      * @param {number} index - The index of the Scene to retrieve.
      *
      * @return {(Phaser.Scene|undefined)} The Scene.
@@ -1298,6 +1367,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#getIndex
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The key of the Scene.
      *
@@ -1317,6 +1389,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#bringToTop
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to move.
      *
@@ -1352,6 +1427,9 @@ var SceneManager = new Class({
      * @method Phaser.Scenes.SceneManager#sendToBack
      * @since 3.0.0
      *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
+     *
      * @param {(string|Phaser.Scene)} key - The Scene to move.
      *
      * @return {this} This Scene Manager instance.
@@ -1383,6 +1461,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#moveDown
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to move.
      *
@@ -1417,6 +1498,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#moveUp
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [key]
      *
      * @param {(string|Phaser.Scene)} key - The Scene to move.
      *
@@ -1453,6 +1537,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#moveAbove
      * @since 3.2.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [keyA,keyB]
      *
      * @param {(string|Phaser.Scene)} keyA - The Scene that Scene B will be moved above.
      * @param {(string|Phaser.Scene)} keyB - The Scene to be moved.
@@ -1497,6 +1584,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#moveBelow
      * @since 3.2.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [keyA,keyB]
      *
      * @param {(string|Phaser.Scene)} keyA - The Scene that Scene B will be moved below.
      * @param {(string|Phaser.Scene)} keyB - The Scene to be moved.
@@ -1566,6 +1656,9 @@ var SceneManager = new Class({
      *
      * @method Phaser.Scenes.SceneManager#swapPosition
      * @since 3.0.0
+     *
+     * @generic {Phaser.Scene} T
+     * @genericUse {(T|string)} - [keyA,keyB]
      *
      * @param {(string|Phaser.Scene)} keyA - The first Scene to swap.
      * @param {(string|Phaser.Scene)} keyB - The second Scene to swap.
@@ -1643,6 +1736,8 @@ var SceneManager = new Class({
             sys.destroy();
         }
 
+        this.systemScene.sys.destroy();
+
         this.update = NOOP;
 
         this.scenes = [];
@@ -1652,6 +1747,7 @@ var SceneManager = new Class({
         this._queue = [];
 
         this.game = null;
+        this.systemScene = null;
     }
 
 });

@@ -1,6 +1,6 @@
 /**
  * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2022 Photon Storm Ltd.
+ * @copyright    2013-2023 Photon Storm Ltd.
  * @license      {@link https://opensource.org/licenses/MIT|MIT License}
  */
 
@@ -32,11 +32,11 @@ var SpriteRender = require('./SpriteRender');
  * @extends Phaser.GameObjects.Components.BlendMode
  * @extends Phaser.GameObjects.Components.Depth
  * @extends Phaser.GameObjects.Components.Flip
- * @extends Phaser.GameObjects.Components.FX
  * @extends Phaser.GameObjects.Components.GetBounds
  * @extends Phaser.GameObjects.Components.Mask
  * @extends Phaser.GameObjects.Components.Origin
  * @extends Phaser.GameObjects.Components.Pipeline
+ * @extends Phaser.GameObjects.Components.PostPipeline
  * @extends Phaser.GameObjects.Components.ScrollFactor
  * @extends Phaser.GameObjects.Components.Size
  * @extends Phaser.GameObjects.Components.TextureCrop
@@ -59,11 +59,11 @@ var Sprite = new Class({
         Components.BlendMode,
         Components.Depth,
         Components.Flip,
-        Components.FX,
         Components.GetBounds,
         Components.Mask,
         Components.Origin,
         Components.Pipeline,
+        Components.PostPipeline,
         Components.ScrollFactor,
         Components.Size,
         Components.TextureCrop,
@@ -107,6 +107,7 @@ var Sprite = new Class({
         this.setSizeToFrame();
         this.setOriginFromFrame();
         this.initPipeline();
+        this.initPostPipeline(true);
     },
 
     //  Overrides Game Object method
